@@ -3,11 +3,10 @@
 <head>
 
 <script>
-window.CFG = {
-  workerUrl: "https://github-proxy.alvinkc.workers.dev",
-  apiKey: "GITHUB_TOKEN",
-  dataFile: "data.json"
-};
+window.CFG = window.CFG || {};
+window.CFG.workerUrl = "https://github-proxy.alvinkc.workers.dev";
+window.CFG.apiKey = "GITHUB_TOKEN";
+window.CFG.dataFile = "data.json";
 </script>
 
 <meta charset="UTF-8">
@@ -495,14 +494,14 @@ const HARDCODED_CFG = {
 const LS_AUTH = 'campalloc_auth';
 const SESSION_MINS = 480; // 8 hours
 
-let CFG = null; // { owner, repo, token, passwordHash }
+window.CFG = window.CFG || null; // { owner, repo, token, passwordHash }
 
 async function hashStr(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
 }
 // CFG is always the hardcoded config
-let CFG = null;
+window.CFG = window.CFG || null;
 function loadConfig() {
   CFG = { ...HARDCODED_CFG };
   // derive passwordHash at runtime
