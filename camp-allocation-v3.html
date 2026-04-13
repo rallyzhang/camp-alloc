@@ -1,0 +1,1254 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camp Allocation — Wyndham Airport Camp</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@400;600;700;900&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --surface2: #1c2230;
+    --border: #2a3444;
+    --accent: #f0a500;
+    --green: #2ea043;
+    --green-dim: #1a3a22;
+    --red: #cf3030;
+    --red-dim: #3a1a1a;
+    --blue: #1a6fb5;
+    --blue-dim: #0d2a44;
+    --yellow: #d4a017;
+    --yellow-dim: #3a2d00;
+    --text: #e6edf3;
+    --text-dim: #8b949e;
+    --text-muted: #484f58;
+    --font-head: 'Barlow Condensed', sans-serif;
+    --font-body: 'Barlow', sans-serif;
+    --radius: 6px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 14px; min-height: 100vh; }
+
+  /* ── LOADING ── */
+  .loading-overlay { position: fixed; inset: 0; background: rgba(13,17,23,.85); display: none; align-items: center; justify-content: center; flex-direction: column; gap: 16px; z-index: 999; backdrop-filter: blur(4px); }
+  .loading-overlay.show { display: flex; }
+  .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-msg { font-family: var(--font-head); font-size: 14px; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase; }
+
+  /* ── NAV ── */
+  .nav { background: var(--surface); border-bottom: 2px solid var(--accent); display: flex; align-items: center; padding: 0 24px; height: 56px; position: sticky; top: 0; z-index: 100; }
+  .nav-brand { font-family: var(--font-head); font-size: 20px; font-weight: 900; letter-spacing: 2px; color: var(--accent); text-transform: uppercase; margin-right: 32px; white-space: nowrap; }
+  .nav-brand span { color: var(--text-dim); font-weight: 400; }
+  .nav-tabs { display: flex; height: 100%; }
+  .nav-tab { font-family: var(--font-head); font-size: 15px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; padding: 0 20px; cursor: pointer; border: none; background: none; color: var(--text-dim); height: 100%; border-bottom: 3px solid transparent; transition: all .2s; display: flex; align-items: center; gap: 8px; }
+  .nav-tab:hover { color: var(--text); }
+  .nav-tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .nav-spacer { flex: 1; }
+  .nav-info { font-family: var(--font-head); font-size: 12px; color: var(--text-muted); letter-spacing: 1px; }
+
+  /* ── PAGES ── */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* ══ OVERVIEW ══ */
+  .overview-header { padding: 20px 24px 16px; display: flex; align-items: center; gap: 20px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .overview-title { font-family: var(--font-head); font-size: 28px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; }
+  .overview-stats { display: flex; gap: 10px; margin-left: auto; flex-wrap: wrap; }
+  .stat-pill { padding: 5px 14px; border-radius: 20px; font-family: var(--font-head); font-size: 13px; font-weight: 600; letter-spacing: 1px; display: flex; align-items: center; gap: 6px; }
+  .stat-pill.occupied { background: var(--blue-dim); color: #58a6ff; border: 1px solid var(--blue); }
+  .stat-pill.vacant   { background: var(--green-dim); color: #3fb950; border: 1px solid var(--green); }
+  .stat-pill.repair   { background: var(--red-dim);  color: #f85149; border: 1px solid var(--red); }
+  .stat-pill.dirty    { background: var(--yellow-dim); color: #d29922; border: 1px solid var(--yellow); }
+
+  .controls-bar { padding: 12px 24px; display: flex; align-items: center; gap: 12px; background: var(--surface2); border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+  .ctrl-label { font-family: var(--font-head); font-size: 13px; font-weight: 600; letter-spacing: 1px; color: var(--text-dim); text-transform: uppercase; }
+  .month-nav { display: flex; align-items: center; gap: 8px; }
+  .month-btn { background: var(--surface); border: 1px solid var(--border); color: var(--text); width: 30px; height: 30px; border-radius: var(--radius); cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center; transition: background .15s; }
+  .month-btn:hover { background: var(--border); }
+  .month-display { font-family: var(--font-head); font-size: 18px; font-weight: 700; letter-spacing: 2px; min-width: 180px; text-align: center; text-transform: uppercase; color: var(--accent); }
+  .view-toggle { display: flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .view-btn { background: none; border: none; color: var(--text-dim); padding: 6px 14px; font-family: var(--font-head); font-size: 13px; font-weight: 600; letter-spacing: 1px; cursor: pointer; text-transform: uppercase; transition: all .15s; }
+  .view-btn.active { background: var(--accent); color: #000; }
+  .legend { display: flex; gap: 12px; margin-left: auto; align-items: center; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--text-dim); }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+  /* ── CALENDAR ── */
+  .calendar-wrap { overflow-x: auto; padding: 0 24px 24px; }
+  .calendar-grid { display: grid; min-width: 900px; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; margin-top: 16px; }
+  .cal-head-row { display: grid; background: var(--surface2); border-bottom: 1px solid var(--border); }
+  .cal-room-label { padding: 10px 14px; font-family: var(--font-head); font-size: 13px; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); border-right: 1px solid var(--border); min-width: 140px; width: 140px; }
+  .cal-day-header { font-family: var(--font-head); font-size: 11px; font-weight: 600; text-align: center; padding: 6px 2px; color: var(--text-muted); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .cal-day-header.today-col { color: var(--accent); background: rgba(240,165,0,.07); }
+  .cal-day-num { font-size: 13px; font-weight: 700; }
+  .cal-day-name { font-size: 9px; }
+  .cal-room-row { display: grid; border-bottom: 1px solid var(--border); }
+  .cal-room-row:last-child { border-bottom: none; }
+  .cal-room-info { padding: 8px 14px; border-right: 2px solid var(--border); min-width: 140px; width: 140px; display: flex; flex-direction: column; gap: 3px; cursor: pointer; transition: background .15s; }
+  .cal-room-info:hover { background: rgba(255,255,255,.03); }
+  .cal-room-num { font-family: var(--font-head); font-size: 16px; font-weight: 900; color: var(--accent); letter-spacing: 1px; }
+  .cal-room-status-badges { display: flex; gap: 3px; flex-wrap: wrap; }
+  .badge { font-size: 9px; font-family: var(--font-head); font-weight: 700; letter-spacing: .5px; padding: 1px 5px; border-radius: 3px; text-transform: uppercase; }
+  .badge.clean  { background: var(--green-dim); color: #3fb950; }
+  .badge.dirty  { background: var(--yellow-dim); color: #d29922; }
+  .badge.repair { background: var(--red-dim); color: #f85149; }
+
+  .cal-day-cell { border-right: 1px solid var(--border); height: 54px; position: relative; cursor: pointer; transition: background .1s; }
+  .cal-day-cell:hover { background: rgba(255,255,255,.03); }
+  .cal-day-cell.today-col { background: rgba(240,165,0,.04); }
+  .cal-day-cell.weekend { background: rgba(255,255,255,.01); }
+  .cal-day-cell.drag-over { background: rgba(240,165,0,.15) !important; outline: 2px dashed var(--accent); outline-offset: -2px; }
+
+  /* ── BOOKING BARS ── */
+  .booking-bar {
+    position: absolute; top: 8px; height: 38px; border-radius: 4px;
+    display: flex; align-items: center; padding: 0 8px;
+    font-family: var(--font-head); font-size: 11px; font-weight: 700; letter-spacing: .5px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    cursor: grab; z-index: 2; box-shadow: 0 2px 8px rgba(0,0,0,.4);
+    transition: transform .1s, box-shadow .1s; user-select: none;
+    left: 1px; right: 1px;
+  }
+  .booking-bar:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(0,0,0,.5); }
+  .booking-bar.dragging { opacity: .6; cursor: grabbing; }
+  .booking-bar.color-0 { background: linear-gradient(135deg,#1a4a8a,#1d6fa5); color:#a8d4f5; border-left:3px solid #58a6ff; }
+  .booking-bar.color-1 { background: linear-gradient(135deg,#2a5a1a,#3a7a2a); color:#a8e6a8; border-left:3px solid #3fb950; }
+  .booking-bar.color-2 { background: linear-gradient(135deg,#6a2a1a,#8a3a20); color:#f5c0a8; border-left:3px solid #f0a500; }
+  .booking-bar.color-3 { background: linear-gradient(135deg,#4a1a6a,#6a2a8a); color:#d4b0f5; border-left:3px solid #a855f7; }
+  .booking-bar.color-4 { background: linear-gradient(135deg,#1a5a5a,#1a7a7a); color:#a0e0e0; border-left:3px solid #22d3ee; }
+  .booking-bar.color-5 { background: linear-gradient(135deg,#5a4a1a,#7a6a1a); color:#f0d890; border-left:3px solid #fbbf24; }
+
+  /* off-week bar: faded / hatched */
+  .booking-bar.off-week {
+    opacity: .38;
+    background: repeating-linear-gradient(45deg, rgba(255,255,255,.04) 0px, rgba(255,255,255,.04) 4px, transparent 4px, transparent 8px) !important;
+    border-left-color: var(--text-muted) !important;
+    color: var(--text-muted) !important;
+    cursor: default;
+  }
+
+  .bar-start { border-radius:4px 0 0 4px; left:2px; }
+  .bar-end   { border-radius:0 4px 4px 0; right:2px; }
+  .bar-mid   { border-radius:0; left:0; right:0; }
+  .bar-solo  { left:2px; right:2px; }
+
+  /* ── POPUP ── */
+  .popup-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:200; backdrop-filter:blur(4px); }
+  .popup-overlay.open { display:flex; align-items:center; justify-content:center; }
+  .popup { background:var(--surface); border:1px solid var(--border); border-top:3px solid var(--accent); border-radius:var(--radius); width:480px; max-width:95vw; max-height:90vh; overflow-y:auto; padding:24px; box-shadow:0 20px 60px rgba(0,0,0,.7); animation:popIn .2s ease; }
+  @keyframes popIn { from{opacity:0;transform:scale(.95) translateY(10px)} to{opacity:1;transform:none} }
+  .popup-head { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:20px; }
+  .popup-title { font-family:var(--font-head); font-size:24px; font-weight:900; letter-spacing:1px; }
+  .popup-close { background:none; border:none; color:var(--text-dim); font-size:22px; cursor:pointer; width:32px; height:32px; display:flex; align-items:center; justify-content:center; border-radius:4px; transition:background .15s; }
+  .popup-close:hover { background:var(--border); color:var(--text); }
+  .popup-section { margin-bottom:14px; }
+  .popup-label { font-family:var(--font-head); font-size:11px; font-weight:700; letter-spacing:1.5px; color:var(--text-muted); text-transform:uppercase; margin-bottom:4px; }
+  .popup-value { font-size:14px; color:var(--text); }
+  .popup-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .popup-actions { display:flex; gap:8px; margin-top:20px; padding-top:16px; border-top:1px solid var(--border); flex-wrap:wrap; }
+  .btn { font-family:var(--font-head); font-size:13px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:8px 16px; border-radius:var(--radius); border:none; cursor:pointer; transition:all .15s; }
+  .btn-primary { background:var(--accent); color:#000; }
+  .btn-primary:hover { background:#ffc233; }
+  .btn-danger { background:var(--red-dim); color:#f85149; border:1px solid var(--red); }
+  .btn-danger:hover { background:var(--red); color:#fff; }
+  .btn-ghost { background:none; color:var(--text-dim); border:1px solid var(--border); }
+  .btn-ghost:hover { background:var(--border); color:var(--text); }
+
+  /* inline edit inputs inside popup */
+  .popup-input { background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:var(--radius); padding:8px 10px; font-family:var(--font-body); font-size:14px; width:100%; transition:border-color .15s; }
+  .popup-input:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(240,165,0,.15); }
+
+  /* ══ BOOKING PAGE ══ */
+  .booking-page { padding:24px; max-width:800px; margin:0 auto; }
+  .booking-page-title { font-family:var(--font-head); font-size:32px; font-weight:900; letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+  .booking-page-sub { color:var(--text-dim); margin-bottom:32px; }
+  .form-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:28px; margin-bottom:20px; }
+  .form-card-title { font-family:var(--font-head); font-size:16px; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--accent); margin-bottom:20px; padding-bottom:10px; border-bottom:1px solid var(--border); }
+  .form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .form-group { display:flex; flex-direction:column; gap:6px; }
+  .form-group.full { grid-column:1/-1; }
+  label { font-family:var(--font-head); font-size:12px; font-weight:700; letter-spacing:1px; color:var(--text-dim); text-transform:uppercase; }
+  input,select,textarea { background:var(--bg); border:1px solid var(--border); color:var(--text); border-radius:var(--radius); padding:10px 12px; font-family:var(--font-body); font-size:14px; transition:border-color .15s; width:100%; }
+  input:focus,select:focus,textarea:focus { outline:none; border-color:var(--accent); box-shadow:0 0 0 2px rgba(240,165,0,.15); }
+  textarea { resize:vertical; min-height:80px; }
+  select option { background:var(--surface); }
+
+  .room-picker { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; }
+  .room-option { border:1px solid var(--border); border-radius:var(--radius); padding:10px 8px; text-align:center; cursor:pointer; transition:all .15s; background:var(--bg); font-family:var(--font-head); font-weight:700; font-size:15px; }
+  .room-option:hover { border-color:var(--accent); color:var(--accent); }
+  .room-option.selected { background:var(--accent); color:#000; border-color:var(--accent); }
+  .room-option.occupied { background:var(--blue-dim); color:#58a6ff; border-color:var(--blue); cursor:not-allowed; }
+  .room-option.repair   { background:var(--red-dim); color:#f85149; border-color:var(--red); cursor:not-allowed; }
+  .room-option .room-tag { font-size:9px; display:block; font-weight:400; margin-top:2px; }
+
+  .condition-row { display:flex; gap:12px; }
+  .toggle-btn { flex:1; padding:10px; border-radius:var(--radius); border:1px solid var(--border); background:var(--bg); color:var(--text-dim); cursor:pointer; font-family:var(--font-head); font-size:13px; font-weight:700; letter-spacing:.5px; text-transform:uppercase; transition:all .15s; text-align:center; }
+  .toggle-btn.active-green { background:var(--green-dim); color:#3fb950; border-color:var(--green); }
+  .toggle-btn.active-red   { background:var(--red-dim);  color:#f85149; border-color:var(--red); }
+  .toggle-btn.active-yellow{ background:var(--yellow-dim);color:#d29922; border-color:var(--yellow); }
+
+  /* roster helper */
+  .roster-info { grid-column:1/-1; background:var(--surface2); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; font-size:12px; color:var(--text-dim); line-height:1.6; display:none; }
+  .roster-info.show { display:block; }
+  .roster-info strong { color:var(--accent); font-family:var(--font-head); }
+
+  .submit-bar { display:flex; gap:12px; justify-content:flex-end; padding-top:8px; }
+  .btn-large { font-family:var(--font-head); font-size:15px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:12px 28px; border-radius:var(--radius); border:none; cursor:pointer; transition:all .15s; }
+  .btn-submit { background:var(--accent); color:#000; }
+  .btn-submit:hover { background:#ffc233; transform:translateY(-1px); box-shadow:0 4px 16px rgba(240,165,0,.3); }
+  .btn-reset  { background:none; color:var(--text-dim); border:1px solid var(--border); }
+  .btn-reset:hover { background:var(--border); color:var(--text); }
+
+  .bookings-list { margin-top:32px; }
+  .bookings-list-title { font-family:var(--font-head); font-size:20px; font-weight:700; letter-spacing:1px; text-transform:uppercase; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; }
+  .bookings-table { width:100%; border-collapse:collapse; }
+  .bookings-table th { font-family:var(--font-head); font-size:11px; font-weight:700; letter-spacing:1px; color:var(--text-muted); text-transform:uppercase; text-align:left; padding:8px 12px; border-bottom:1px solid var(--border); }
+  .bookings-table td { padding:10px 12px; border-bottom:1px solid rgba(42,52,68,.5); vertical-align:middle; }
+  .bookings-table tr:hover td { background:rgba(255,255,255,.02); }
+  .room-chip { background:var(--surface2); border:1px solid var(--border); color:var(--accent); font-family:var(--font-head); font-weight:700; padding:3px 8px; border-radius:4px; font-size:13px; }
+
+  .toast { position:fixed; bottom:24px; right:24px; background:var(--green); color:#fff; padding:12px 20px; border-radius:var(--radius); font-family:var(--font-head); font-size:14px; font-weight:700; letter-spacing:.5px; z-index:500; animation:slideUp .3s ease; display:none; }
+  .toast.error { background:var(--red); }
+  .toast.show { display:block; }
+  @keyframes slideUp { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:none} }
+
+  .empty-state { text-align:center; padding:40px; color:var(--text-muted); font-family:var(--font-head); font-size:14px; letter-spacing:1px; text-transform:uppercase; }
+  .empty-state .icon { font-size:32px; margin-bottom:10px; }
+
+  ::-webkit-scrollbar { width:6px; height:6px; }
+  ::-webkit-scrollbar-track { background:var(--bg); }
+  ::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+  @media(max-width:600px){ .form-grid{grid-template-columns:1fr} .overview-stats{display:none} }
+
+  /* SP setup guide */
+  .setup-banner { background:var(--blue-dim); border:1px solid var(--blue); border-radius:var(--radius); padding:14px 20px; margin:14px 24px; font-size:13px; color:#a0c8f0; line-height:1.6; display:none; }
+  .setup-banner.show { display:block; }
+  .setup-banner code { background:rgba(0,0,0,.3); padding:1px 5px; border-radius:3px; font-size:12px; }
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-msg" id="loadingMsg">Loading...</div>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <div class="nav-brand">⛏ Camp<span>Alloc</span></div>
+  <div class="nav-tabs">
+    <button class="nav-tab active" onclick="showPage('overview')">📊 Overview</button>
+    <button class="nav-tab" onclick="showPage('booking')">➕ New Booking</button>
+  </div>
+  <div class="nav-spacer"></div>
+  <div class="nav-info" id="navTime"></div>
+</nav>
+
+<!-- Setup banner -->
+<div class="setup-banner" id="setupBanner">
+  ⚠️ <strong>SharePoint Lists not found.</strong> Click <a href="#" onclick="showSetupGuide()" style="color:#58a6ff">Setup Guide</a> to configure.
+</div>
+
+<!-- ══ OVERVIEW PAGE ══ -->
+<div class="page active" id="page-overview">
+  <div class="overview-header">
+    <div class="overview-title">Room Allocation</div>
+    <div class="overview-stats">
+      <div class="stat-pill occupied">🛏 <span id="stat-occupied">0</span> Occupied</div>
+      <div class="stat-pill vacant">✅ <span id="stat-vacant">16</span> Vacant</div>
+      <div class="stat-pill repair">🔧 <span id="stat-repair">0</span> Repair</div>
+      <div class="stat-pill dirty">🧹 <span id="stat-dirty">0</span> Unclean</div>
+    </div>
+  </div>
+  <div class="controls-bar">
+    <span class="ctrl-label">Period:</span>
+    <div class="month-nav">
+      <button class="month-btn" onclick="changeMonth(-1)">‹</button>
+      <div class="month-display" id="monthDisplay"></div>
+      <button class="month-btn" onclick="changeMonth(1)">›</button>
+    </div>
+    <div class="view-toggle">
+      <button class="view-btn active" onclick="setView('month',this)">Month</button>
+      <button class="view-btn" onclick="setView('week',this)">Week</button>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#1a6fb5"></div>Occupied</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#2ea043"></div>Available</div>
+      <div class="legend-item"><div class="legend-dot" style="background:var(--text-muted);opacity:.5"></div>Off-week (room free)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#f85149"></div>Repair</div>
+    </div>
+  </div>
+  <div class="calendar-wrap">
+    <div class="calendar-grid" id="calendarGrid"></div>
+  </div>
+</div>
+
+<!-- ══ BOOKING PAGE ══ -->
+<div class="page" id="page-booking">
+  <div class="booking-page">
+    <div class="booking-page-title">New Booking</div>
+    <div class="booking-page-sub">Schedule a room for a camp occupant</div>
+
+    <div class="form-card">
+      <div class="form-card-title">👤 Occupant Details</div>
+      <div class="form-grid">
+        <div class="form-group"><label>First Name *</label><input type="text" id="f-firstname" placeholder="e.g. James"></div>
+        <div class="form-group"><label>Last Name</label><input type="text" id="f-lastname" placeholder="e.g. Crawford"></div>
+        <div class="form-group"><label>Company / Contractor</label><input type="text" id="f-company" placeholder="e.g. Apex Drilling"></div>
+        <div class="form-group"><label>Role</label><input type="text" id="f-role" placeholder="e.g. Drill Operator"></div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-title">🏠 Room Selection</div>
+      <div class="room-picker" id="roomPicker"></div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-title">📅 Dates & Roster</div>
+      <div class="form-grid">
+        <div class="form-group"><label>Check-In Date *</label><input type="date" id="f-checkin"></div>
+        <div class="form-group"><label>Check-Out Date *</label><input type="date" id="f-checkout"></div>
+        <div class="form-group">
+          <label>Roster Pattern</label>
+          <select id="f-roster" onchange="onRosterChange()">
+            <option value="">No roster — custom dates</option>
+            <option value="7/7">7 on / 7 off</option>
+            <option value="14/7">14 on / 7 off</option>
+            <option value="14/14">14 on / 14 off</option>
+            <option value="21/7">21 on / 7 off</option>
+            <option value="28/14">28 on / 14 off</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Number of Rotations</label>
+          <input type="number" id="f-rotations" min="1" max="26" value="1" onchange="onRosterChange()">
+        </div>
+        <div class="form-group">
+          <label>Room during off-week</label>
+          <select id="f-offweek">
+            <option value="free">Room is FREE (available to others)</option>
+            <option value="held">Room is HELD (stays assigned)</option>
+          </select>
+        </div>
+        <div class="roster-info" id="rosterInfo"></div>
+      </div>
+    </div>
+
+    <div class="form-card">
+      <div class="form-card-title">🧹 Room Condition</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Clean Status</label>
+          <div class="condition-row">
+            <button class="toggle-btn active-green" id="btn-clean" onclick="setClean(true)">✔ Clean</button>
+            <button class="toggle-btn" id="btn-dirty" onclick="setClean(false)">✖ Dirty</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Maintenance</label>
+          <div class="condition-row">
+            <button class="toggle-btn active-green" id="btn-ok" onclick="setRepair(false)">✔ OK</button>
+            <button class="toggle-btn" id="btn-repair" onclick="setRepair(true)">🔧 Repair Required</button>
+          </div>
+        </div>
+        <div class="form-group full"><label>Notes</label><textarea id="f-notes" placeholder="Any special requirements or maintenance notes..."></textarea></div>
+      </div>
+    </div>
+
+    <div class="submit-bar">
+      <button class="btn-large btn-reset" onclick="resetForm()">Clear</button>
+      <button class="btn-large btn-submit" onclick="submitBooking()">✔ Confirm Booking</button>
+    </div>
+
+    <div class="bookings-list">
+      <div class="bookings-list-title">
+        <span>All Bookings</span>
+        <span id="booking-count" style="font-size:13px;color:var(--text-muted)"></span>
+      </div>
+      <table class="bookings-table">
+        <thead><tr><th>Room</th><th>Occupant</th><th>Company</th><th>Check In</th><th>Check Out</th><th>Roster</th><th>Clean</th><th>Status</th><th></th></tr></thead>
+        <tbody id="bookingsTbody"></tbody>
+      </table>
+      <div id="bookingsEmpty" class="empty-state"><div class="icon">📋</div>No bookings yet.</div>
+    </div>
+  </div>
+</div>
+
+<!-- POPUP -->
+<div class="popup-overlay" id="popupOverlay" onclick="closePopup(event)">
+  <div class="popup">
+    <div class="popup-head">
+      <div class="popup-title" id="popupTitle"></div>
+      <button class="popup-close" onclick="closePopupDirect()">✕</button>
+    </div>
+    <div id="popupBody"></div>
+    <div class="popup-actions" id="popupActions"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// SHAREPOINT CONFIG (no login required)
+// ══════════════════════════════════════════════════════════
+const SP = {
+  siteUrl: 'https://kmetgroup.sharepoint.com/sites/WyndhamAirportCampAdmin',
+  bookingsList: 'CampBookings',
+  roomsList: 'CampRooms',
+};
+
+// ══════════════════════════════════════════════════════════
+// SP API — uses fetch with credentials:include (same-origin
+// SharePoint session cookie, no Azure AD token needed)
+// ══════════════════════════════════════════════════════════
+async function spDigest() {
+  const r = await fetch(`${SP.siteUrl}/_api/contextinfo`, {
+    method: 'POST', credentials: 'include',
+    headers: { Accept: 'application/json;odata=nometadata' }
+  });
+  const d = await r.json();
+  return d.FormDigestValue;
+}
+
+async function spGet(list, query='') {
+  const r = await fetch(`${SP.siteUrl}/_api/web/lists/getbytitle('${list}')/items${query}`, {
+    credentials: 'include',
+    headers: { Accept: 'application/json;odata=nometadata' }
+  });
+  if (!r.ok) throw new Error(`GET ${list} failed: ${r.status}`);
+  return (await r.json()).value || [];
+}
+
+async function spPost(list, body) {
+  const digest = await spDigest();
+  const r = await fetch(`${SP.siteUrl}/_api/web/lists/getbytitle('${list}')/items`, {
+    method: 'POST', credentials: 'include',
+    headers: { Accept:'application/json;odata=nometadata', 'Content-Type':'application/json;odata=nometadata', 'X-RequestDigest': digest },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+  return await r.json();
+}
+
+async function spPatch(list, id, body) {
+  const digest = await spDigest();
+  const r = await fetch(`${SP.siteUrl}/_api/web/lists/getbytitle('${list}')/items(${id})`, {
+    method: 'POST', credentials: 'include',
+    headers: { Accept:'application/json;odata=nometadata', 'Content-Type':'application/json;odata=nometadata', 'X-RequestDigest': digest, 'X-HTTP-Method':'MERGE', 'IF-MATCH':'*' },
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+async function spDelete(list, id) {
+  const digest = await spDigest();
+  const r = await fetch(`${SP.siteUrl}/_api/web/lists/getbytitle('${list}')/items(${id})`, {
+    method: 'POST', credentials: 'include',
+    headers: { 'X-RequestDigest': digest, 'X-HTTP-Method':'DELETE', 'IF-MATCH':'*' }
+  });
+  if (!r.ok) throw new Error(await r.text());
+}
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+const ROOMS = Array.from({length:16},(_,i)=>({ id:i+1, num:`R${String(i+1).padStart(2,'0')}`, clean:true, repair:false, spId:null }));
+let bookings = [];        // each booking may have .segments[] for roster
+let currentYear  = new Date().getFullYear();
+let currentMonth = new Date().getMonth();
+let currentView  = 'month';
+let selectedRoom = null;
+let isClean = true, needsRepair = false;
+let dragBookingId = null;
+let spAvailable = false;
+
+// ══════════════════════════════════════════════════════════
+// ROSTER SEGMENT HELPERS
+// ══════════════════════════════════════════════════════════
+/**
+ * Build roster segments for a booking.
+ * Returns array of { checkin, checkout, isOn }
+ * isOn=true  → person is present (occupying room)
+ * isOn=false → off-week  (room free or held per offweek setting)
+ */
+function buildRosterSegments(startDate, onDays, offDays, rotations) {
+  const segs = [];
+  let cur = new Date(startDate);
+  for (let r = 0; r < rotations; r++) {
+    const onEnd = new Date(cur); onEnd.setDate(cur.getDate() + onDays - 1);
+    segs.push({ checkin: formatDate(cur), checkout: formatDate(onEnd), isOn: true });
+    cur = new Date(onEnd); cur.setDate(onEnd.getDate() + 1);
+    const offEnd = new Date(cur); offEnd.setDate(cur.getDate() + offDays - 1);
+    segs.push({ checkin: formatDate(cur), checkout: formatDate(offEnd), isOn: false });
+    cur = new Date(offEnd); cur.setDate(offEnd.getDate() + 1);
+  }
+  return segs;
+}
+
+/** Is a booking occupying a room on a given date (respects off-week/free logic) */
+function bookingOccupiesOnDate(b, date) {
+  const d = new Date(date); d.setHours(0,0,0,0);
+  if (b.segments && b.segments.length) {
+    return b.segments.some(s => {
+      if (!s.isOn && b.offweek === 'free') return false; // off-week, room is free
+      const cin = parseDate(s.checkin), cout = parseDate(s.checkout);
+      cin.setHours(0,0,0,0); cout.setHours(0,0,0,0);
+      return d >= cin && d <= cout;
+    });
+  }
+  return isBookingActiveOnDate(b, date);
+}
+
+/** Is a date within any segment of a booking (on or off) */
+function bookingSpansDate(b, date) {
+  const d = new Date(date); d.setHours(0,0,0,0);
+  const cin = parseDate(b.checkin), cout = parseDate(b.checkout);
+  cin.setHours(0,0,0,0); cout.setHours(0,0,0,0);
+  return d >= cin && d <= cout;
+}
+
+/** Segment type on a given date for a booking */
+function segmentOnDate(b, dateStr) {
+  if (!b.segments || !b.segments.length) return null;
+  return b.segments.find(s => {
+    const cin = parseDate(s.checkin), cout = parseDate(s.checkout);
+    const d = parseDate(dateStr);
+    cin.setHours(0,0,0,0); cout.setHours(0,0,0,0); d.setHours(0,0,0,0);
+    return d >= cin && d <= cout;
+  }) || null;
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+async function initApp() {
+  showLoading('Loading data...');
+  try {
+    await loadRooms();
+    await loadBookings();
+    spAvailable = true;
+    document.getElementById('setupBanner').classList.remove('show');
+  } catch(e) {
+    console.warn('SP unavailable, running in local mode:', e.message);
+    document.getElementById('setupBanner').classList.add('show');
+  }
+  hideLoading();
+  renderCalendar(); updateStats(); renderRoomPicker(); renderBookingsList();
+}
+
+async function loadRooms() {
+  const items = await spGet(SP.roomsList,'?$select=Id,RoomNumber,IsClean,NeedsRepair&$top=50');
+  items.forEach(item => {
+    const r = ROOMS.find(r=>r.num===item.RoomNumber);
+    if (r) { r.clean=item.IsClean; r.repair=item.NeedsRepair; r.spId=item.Id; }
+  });
+  for (const room of ROOMS) {
+    if (!room.spId) {
+      try { const c=await spPost(SP.roomsList,{RoomNumber:room.num,IsClean:true,NeedsRepair:false}); room.spId=c.Id; } catch{}
+    }
+  }
+}
+
+async function loadBookings() {
+  const items = await spGet(SP.bookingsList,
+    '?$select=Id,Title,OccupantName,Company,Role,RoomNumber,CheckIn,CheckOut,IsClean,NeedsRepair,Notes,ColorIndex,RosterPattern,OffWeek,SegmentsJson&$top=500&$orderby=CheckIn desc');
+  bookings = items.map(item => {
+    const b = {
+      id: String(item.Id), spId: item.Id,
+      roomId: ROOMS.find(r=>r.num===item.RoomNumber)?.id || 1,
+      name: item.OccupantName||item.Title||'',
+      company: item.Company||'', role: item.Role||'',
+      checkin: item.CheckIn?item.CheckIn.substring(0,10):'',
+      checkout: item.CheckOut?item.CheckOut.substring(0,10):'',
+      clean: item.IsClean, repair: item.NeedsRepair,
+      notes: item.Notes||'', color: item.ColorIndex||0,
+      rosterPattern: item.RosterPattern||'',
+      offweek: item.OffWeek||'held',
+      segments: [],
+    };
+    try { if (item.SegmentsJson) b.segments = JSON.parse(item.SegmentsJson); } catch{}
+    return b;
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// NAV
+// ══════════════════════════════════════════════════════════
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('page-'+page).classList.add('active');
+  document.querySelectorAll('.nav-tab')[page==='overview'?0:1].classList.add('active');
+  if (page==='overview') { renderCalendar(); updateStats(); }
+  if (page==='booking')  { renderRoomPicker(); renderBookingsList(); }
+}
+
+function updateClock() {
+  const d = new Date();
+  document.getElementById('navTime').textContent =
+    d.toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'}) + '  ' +
+    d.toLocaleTimeString('en-AU',{hour:'2-digit',minute:'2-digit'});
+}
+setInterval(updateClock,1000); updateClock();
+
+// ══════════════════════════════════════════════════════════
+// CALENDAR RENDER
+// ══════════════════════════════════════════════════════════
+function changeMonth(dir) {
+  currentMonth+=dir;
+  if(currentMonth>11){currentMonth=0;currentYear++;}
+  if(currentMonth<0){currentMonth=11;currentYear--;}
+  renderCalendar();
+}
+function setView(v,btn) {
+  currentView=v;
+  document.querySelectorAll('.view-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const grid = document.getElementById('calendarGrid');
+  const today = new Date(); today.setHours(0,0,0,0);
+  let startDate, days;
+  if (currentView==='month') {
+    startDate = new Date(currentYear,currentMonth,1);
+    days = new Date(currentYear,currentMonth+1,0).getDate();
+  } else {
+    const now = new Date(currentYear,currentMonth,1);
+    const dow = now.getDay();
+    startDate = new Date(now); startDate.setDate(now.getDate()-(dow===0?6:dow-1));
+    days = 7;
+  }
+  const MNAMES=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  document.getElementById('monthDisplay').textContent = MNAMES[currentMonth]+' '+currentYear;
+  const RCOL=140, DAY_W=Math.max(currentView==='month'?Math.floor((window.innerWidth-RCOL-48)/days):120, currentView==='month'?26:80);
+  const cols=`${RCOL}px `+`${DAY_W}px `.repeat(days);
+
+  // header
+  let html=`<div class="cal-head-row" style="grid-template-columns:${cols}"><div class="cal-room-label">Room</div>`;
+  const DNAMES=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  for(let d=0;d<days;d++){
+    const dt=new Date(startDate); dt.setDate(startDate.getDate()+d);
+    const isToday=dt.getTime()===today.getTime();
+    const isWknd=dt.getDay()===0||dt.getDay()===6;
+    html+=`<div class="cal-day-header${isToday?' today-col':''}" style="${isWknd?'color:var(--text-muted);':''}">
+      <span class="cal-day-num">${dt.getDate()}</span><span class="cal-day-name">${DNAMES[dt.getDay()]}</span></div>`;
+  }
+  html+='</div>';
+
+  // rows
+  ROOMS.forEach(room=>{
+    html+=`<div class="cal-room-row" style="grid-template-columns:${cols}">`;
+    const bdg=`${room.clean?'<span class="badge clean">Clean</span>':'<span class="badge dirty">Dirty</span>'}${room.repair?'<span class="badge repair">Repair</span>':''}`;
+    html+=`<div class="cal-room-info" onclick="showRoomPopup(${room.id})">
+      <div class="cal-room-num">${room.num}</div>
+      <div class="cal-room-status-badges">${bdg}</div></div>`;
+
+    const roomBks = bookings.filter(b=>b.roomId===room.id);
+    for(let d=0;d<days;d++){
+      const dt=new Date(startDate); dt.setDate(startDate.getDate()+d);
+      const dtStr=formatDate(dt);
+      const isToday=dt.getTime()===today.getTime();
+      const isWknd=dt.getDay()===0||dt.getDay()===6;
+
+      // find bookings whose overall span covers this date
+      const dayBks=roomBks.filter(b=>bookingSpansDate(b,dt));
+      let bars='';
+      dayBks.forEach(b=>{
+        const seg=segmentOnDate(b,dtStr);
+        const isOff=seg&&!seg.isOn;
+        const isFreeOff=isOff&&b.offweek==='free';
+
+        // determine visual position within overall booking
+        const cin=parseDate(b.checkin), cout=parseDate(b.checkout);
+        const isStart=formatDate(cin)===dtStr, isEnd=formatDate(cout)===dtStr;
+        const posClass=isStart&&isEnd?'bar-solo':isStart?'bar-start':isEnd?'bar-end':'bar-mid';
+        const showName=isStart||d===0;
+        const offCls=isOff?' off-week':'';
+        const label=isFreeOff?'(off)':showName?b.name.split(' ')[0]:'';
+
+        bars+=`<div class="booking-bar color-${b.color} ${posClass}${offCls}"
+          ${!isOff?`draggable="true" ondragstart="onDragStart(event,'${b.id}')"` : ''}
+          onclick="showBookingPopup('${b.id}',event)"
+          title="${b.name}${b.rosterPattern?' ['+b.rosterPattern+']':''} | ${b.checkin} → ${b.checkout}${isOff?' | OFF WEEK':''}">
+          ${label}</div>`;
+      });
+
+      html+=`<div class="cal-day-cell${isToday?' today-col':''}${isWknd?' weekend':''}"
+        data-room="${room.id}" data-date="${dtStr}"
+        ondragover="onDragOver(event)"
+        ondragleave="onDragLeave(event)"
+        ondrop="onDrop(event,'${room.id}','${dtStr}')">${bars}</div>`;
+    }
+    html+='</div>';
+  });
+  grid.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════
+function isBookingActiveOnDate(b,date){
+  const cin=parseDate(b.checkin),cout=parseDate(b.checkout),d=new Date(date);
+  d.setHours(0,0,0,0);cin.setHours(0,0,0,0);cout.setHours(0,0,0,0);
+  return d>=cin&&d<=cout;
+}
+function parseDate(s){ const [y,m,d]=s.split('-'); return new Date(+y,+m-1,+d); }
+function formatDate(d){ return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmtDisplay(s){ if(!s) return '—'; return parseDate(s).toLocaleDateString('en-AU',{day:'2-digit',month:'short',year:'numeric'}); }
+function isRangeOverlap(s1,e1,s2,e2){ return parseDate(s1)<=parseDate(e2)&&parseDate(e1)>=parseDate(s2); }
+
+function updateStats(){
+  const today=new Date(); today.setHours(0,0,0,0);
+  const occupied=ROOMS.filter(r=>bookings.some(b=>b.roomId===r.id&&bookingOccupiesOnDate(b,today))).length;
+  document.getElementById('stat-occupied').textContent=occupied;
+  document.getElementById('stat-vacant').textContent=16-occupied;
+  document.getElementById('stat-repair').textContent=ROOMS.filter(r=>r.repair).length;
+  document.getElementById('stat-dirty').textContent=ROOMS.filter(r=>!r.clean).length;
+}
+
+// ══════════════════════════════════════════════════════════
+// DRAG & DROP (move entire booking)
+// ══════════════════════════════════════════════════════════
+function onDragStart(e,id){ dragBookingId=id; e.dataTransfer.effectAllowed='move'; e.target.classList.add('dragging'); }
+function onDragOver(e){ e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
+function onDragLeave(e){ e.currentTarget.classList.remove('drag-over'); }
+
+async function onDrop(e,roomId,dateStr){
+  e.preventDefault(); e.currentTarget.classList.remove('drag-over');
+  if(!dragBookingId) return;
+  const b=bookings.find(x=>x.id===dragBookingId); if(!b) return;
+  const dur=Math.round((parseDate(b.checkout)-parseDate(b.checkin))/(86400000));
+  const newStart=parseDate(dateStr);
+  const newEnd=new Date(newStart); newEnd.setDate(newStart.getDate()+dur);
+  const newStartStr=formatDate(newStart), newEndStr=formatDate(newEnd);
+
+  // conflict check (only on-week segments of proposed booking vs existing)
+  const conflict=bookings.some(x=>{
+    if(x.id===b.id) return false;
+    if(x.roomId!==+roomId) return false;
+    // check if any on-period of new position overlaps any on-period of existing
+    if(!isRangeOverlap(newStartStr,newEndStr,x.checkin,x.checkout)) return false;
+    // detailed: check actual occupied days
+    const testDays=dur+1;
+    for(let i=0;i<testDays;i++){
+      const dt=new Date(newStart); dt.setDate(newStart.getDate()+i);
+      // would the moved booking occupy this day?
+      const movedOccupies=(!b.segments.length)||segmentShift(b.segments,parseDate(b.checkin),newStart,formatDate(dt));
+      if(movedOccupies&&bookingOccupiesOnDate(x,dt)) return true;
+    }
+    return false;
+  });
+  if(conflict){ showToast('Room conflict for those dates',true); dragBookingId=null; return; }
+
+  const oldRoom=b.roomId, oldCI=b.checkin, oldCO=b.checkout, oldSegs=[...b.segments];
+  b.roomId=+roomId; b.checkin=newStartStr; b.checkout=newEndStr;
+  // shift segments by same offset
+  if(b.segments.length){
+    const offset=Math.round((newStart-parseDate(oldCI))/86400000);
+    b.segments=b.segments.map(s=>{
+      const sc=new Date(parseDate(s.checkin)); sc.setDate(sc.getDate()+offset);
+      const se=new Date(parseDate(s.checkout)); se.setDate(se.getDate()+offset);
+      return {...s,checkin:formatDate(sc),checkout:formatDate(se)};
+    });
+  }
+  renderCalendar(); updateStats();
+  try {
+    const room=ROOMS.find(r=>r.id===+roomId);
+    showLoading('Saving...');
+    await spPatch(SP.bookingsList,b.spId,{RoomNumber:room.num,CheckIn:b.checkin,CheckOut:b.checkout,SegmentsJson:JSON.stringify(b.segments)});
+    hideLoading(); showToast('Booking moved ✔');
+  } catch(err){
+    b.roomId=oldRoom; b.checkin=oldCI; b.checkout=oldCO; b.segments=oldSegs;
+    renderCalendar(); hideLoading(); showToast('Move failed: '+err.message,true);
+  }
+  dragBookingId=null;
+}
+
+function segmentShift(origSegs, origStart, newStart, dateStr) {
+  const offset=Math.round((newStart-origStart)/86400000);
+  const shifted=origSegs.map(s=>{
+    const sc=new Date(parseDate(s.checkin)); sc.setDate(sc.getDate()+offset);
+    const se=new Date(parseDate(s.checkout)); se.setDate(se.getDate()+offset);
+    return {...s,checkin:formatDate(sc),checkout:formatDate(se)};
+  });
+  const d=parseDate(dateStr); d.setHours(0,0,0,0);
+  return shifted.some(s=>{const a=parseDate(s.checkin),b=parseDate(s.checkout);a.setHours(0,0,0,0);b.setHours(0,0,0,0);return s.isOn&&d>=a&&d<=b;});
+}
+
+// ══════════════════════════════════════════════════════════
+// POPUPS — Room
+// ══════════════════════════════════════════════════════════
+function showRoomPopup(roomId){
+  const room=ROOMS.find(r=>r.id===roomId);
+  const today=new Date();
+  const ab=bookings.find(b=>b.roomId===roomId&&bookingOccupiesOnDate(b,today));
+  document.getElementById('popupTitle').textContent=room.num+' — Room Details';
+  document.getElementById('popupBody').innerHTML=`
+    <div class="popup-row">
+      <div class="popup-section"><div class="popup-label">Clean Status</div><div class="popup-value">${room.clean?'✅ Clean':'🧹 Needs Cleaning'}</div></div>
+      <div class="popup-section"><div class="popup-label">Maintenance</div><div class="popup-value">${room.repair?'🔧 Repair Required':'✅ No Issues'}</div></div>
+    </div>
+    <div class="popup-section"><div class="popup-label">Current Occupant</div><div class="popup-value">${ab?ab.name+(ab.company?` (${ab.company})`:''): '— Vacant'}</div></div>
+    ${ab?`<div class="popup-row">
+      <div class="popup-section"><div class="popup-label">Check In</div><div class="popup-value">${fmtDisplay(ab.checkin)}</div></div>
+      <div class="popup-section"><div class="popup-label">Check Out</div><div class="popup-value">${fmtDisplay(ab.checkout)}</div></div>
+    </div>`:''}
+    ${ab&&ab.rosterPattern?`<div class="popup-section"><div class="popup-label">Roster</div><div class="popup-value">${ab.rosterPattern} — off-week room is ${ab.offweek==='free'?'FREE':'HELD'}</div></div>`:''}
+  `;
+  document.getElementById('popupActions').innerHTML=`
+    <button class="btn ${room.clean?'btn-ghost':'btn-primary'}" onclick="toggleRoomClean(${roomId})">${room.clean?'Mark Dirty':'Mark Clean'}</button>
+    <button class="btn ${room.repair?'btn-ghost':'btn-danger'}" onclick="toggleRoomRepair(${roomId})">${room.repair?'Clear Repair':'Flag Repair'}</button>
+    <button class="btn btn-ghost" onclick="closePopupDirect()">Close</button>`;
+  document.getElementById('popupOverlay').classList.add('open');
+}
+
+// ══════════════════════════════════════════════════════════
+// POPUPS — Booking (view + EDIT)
+// ══════════════════════════════════════════════════════════
+function showBookingPopup(bookingId, e) {
+  e.stopPropagation();
+  const b=bookings.find(x=>x.id===bookingId); if(!b) return;
+  const room=ROOMS.find(r=>r.id===b.roomId);
+  document.getElementById('popupTitle').textContent=room.num+' — '+b.name;
+  renderBookingPopupView(b,room);
+  document.getElementById('popupOverlay').classList.add('open');
+}
+
+function renderBookingPopupView(b, room) {
+  document.getElementById('popupBody').innerHTML=`
+    <div class="popup-row">
+      <div class="popup-section"><div class="popup-label">Role</div><div class="popup-value">${b.role||'—'}</div></div>
+      <div class="popup-section"><div class="popup-label">Company</div><div class="popup-value">${b.company||'—'}</div></div>
+    </div>
+    <div class="popup-row">
+      <div class="popup-section"><div class="popup-label">Check In</div><div class="popup-value">${fmtDisplay(b.checkin)}</div></div>
+      <div class="popup-section"><div class="popup-label">Check Out</div><div class="popup-value">${fmtDisplay(b.checkout)}</div></div>
+    </div>
+    ${b.rosterPattern?`<div class="popup-section"><div class="popup-label">Roster Pattern</div><div class="popup-value">${b.rosterPattern} — off-week: ${b.offweek==='free'?'Room FREE':'Room HELD'}</div></div>`:''}
+    ${b.notes?`<div class="popup-section"><div class="popup-label">Notes</div><div class="popup-value">${b.notes}</div></div>`:''}
+  `;
+  document.getElementById('popupActions').innerHTML=`
+    <button class="btn btn-primary" onclick="renderBookingPopupEdit('${b.id}')">✏️ Edit</button>
+    <button class="btn btn-danger" onclick="deleteBooking('${b.id}')">Delete</button>
+    <button class="btn btn-ghost" onclick="closePopupDirect()">Close</button>`;
+}
+
+function renderBookingPopupEdit(bookingId) {
+  const b=bookings.find(x=>x.id===bookingId);
+  const room=ROOMS.find(r=>r.id===b.roomId);
+  // build room options
+  const roomOpts=ROOMS.map(r=>`<option value="${r.id}"${r.id===b.roomId?' selected':''}>${r.num}</option>`).join('');
+  // roster options
+  const rosterOpts=[
+    ['','No roster'],['7/7','7 on / 7 off'],['14/7','14 on / 7 off'],
+    ['14/14','14 on / 14 off'],['21/7','21 on / 7 off'],['28/14','28 on / 14 off']
+  ].map(([v,l])=>`<option value="${v}"${b.rosterPattern===v?' selected':''}>${l}</option>`).join('');
+
+  document.getElementById('popupBody').innerHTML=`
+    <div class="popup-row" style="margin-bottom:12px">
+      <div class="popup-section">
+        <div class="popup-label">Occupant Name</div>
+        <input class="popup-input" id="ep-name" value="${b.name}">
+      </div>
+      <div class="popup-section">
+        <div class="popup-label">Room</div>
+        <select class="popup-input" id="ep-room">${roomOpts}</select>
+      </div>
+    </div>
+    <div class="popup-row" style="margin-bottom:12px">
+      <div class="popup-section">
+        <div class="popup-label">Company</div>
+        <input class="popup-input" id="ep-company" value="${b.company}">
+      </div>
+      <div class="popup-section">
+        <div class="popup-label">Role</div>
+        <input class="popup-input" id="ep-role" value="${b.role}">
+      </div>
+    </div>
+    <div class="popup-row" style="margin-bottom:12px">
+      <div class="popup-section">
+        <div class="popup-label">Check-In Date</div>
+        <input class="popup-input" type="date" id="ep-checkin" value="${b.checkin}">
+      </div>
+      <div class="popup-section">
+        <div class="popup-label">Check-Out Date</div>
+        <input class="popup-input" type="date" id="ep-checkout" value="${b.checkout}">
+      </div>
+    </div>
+    <div class="popup-row" style="margin-bottom:12px">
+      <div class="popup-section">
+        <div class="popup-label">Roster Pattern</div>
+        <select class="popup-input" id="ep-roster" onchange="editRosterChange('${bookingId}')">${rosterOpts}</select>
+      </div>
+      <div class="popup-section">
+        <div class="popup-label">Off-week room</div>
+        <select class="popup-input" id="ep-offweek">
+          <option value="free"${b.offweek==='free'?' selected':''}>FREE (available to others)</option>
+          <option value="held"${b.offweek==='held'?' selected':''}>HELD (stays assigned)</option>
+        </select>
+      </div>
+    </div>
+    <div class="popup-row" style="margin-bottom:4px" id="ep-rotations-row" style="${b.rosterPattern?'':'display:none'}">
+      <div class="popup-section">
+        <div class="popup-label">Rotations</div>
+        <input class="popup-input" type="number" id="ep-rotations" min="1" max="26" value="${countRotations(b)}" onchange="editRosterChange('${bookingId}')">
+      </div>
+      <div class="popup-section"></div>
+    </div>
+    <div class="popup-section">
+      <div class="popup-label">Notes</div>
+      <textarea class="popup-input" id="ep-notes" style="min-height:60px">${b.notes}</textarea>
+    </div>
+  `;
+  toggleEditRotationsRow(b.rosterPattern);
+  document.getElementById('popupActions').innerHTML=`
+    <button class="btn btn-primary" onclick="saveBookingEdit('${bookingId}')">💾 Save Changes</button>
+    <button class="btn btn-ghost" onclick="renderBookingPopupView(bookings.find(x=>x.id==='${bookingId}'),ROOMS.find(r=>r.id===bookings.find(x=>x.id==='${bookingId}').roomId))">Cancel</button>`;
+}
+
+function toggleEditRotationsRow(pattern) {
+  const row=document.getElementById('ep-rotations-row');
+  if(row) row.style.display=pattern?'':'none';
+}
+
+function editRosterChange(bookingId) {
+  const pattern=document.getElementById('ep-roster').value;
+  toggleEditRotationsRow(pattern);
+}
+
+function countRotations(b) {
+  if(!b.segments||!b.segments.length) return 1;
+  return b.segments.filter(s=>s.isOn).length;
+}
+
+async function saveBookingEdit(bookingId) {
+  const b=bookings.find(x=>x.id===bookingId); if(!b) return;
+  const newName=document.getElementById('ep-name').value.trim();
+  const newRoomId=+document.getElementById('ep-room').value;
+  const newCI=document.getElementById('ep-checkin').value;
+  const newCO=document.getElementById('ep-checkout').value;
+  const newRoster=document.getElementById('ep-roster').value;
+  const newOffweek=document.getElementById('ep-offweek').value;
+  const newRots=+document.getElementById('ep-rotations').value||1;
+  const newCompany=document.getElementById('ep-company').value.trim();
+  const newRole=document.getElementById('ep-role').value.trim();
+  const newNotes=document.getElementById('ep-notes').value.trim();
+
+  if(!newName){ showToast('Name required',true); return; }
+  if(!newCI||!newCO){ showToast('Dates required',true); return; }
+  if(newCI>newCO){ showToast('Check-out must be after check-in',true); return; }
+
+  // conflict check excluding self
+  const conflict=bookings.some(x=>{
+    if(x.id===b.id) return false;
+    if(x.roomId!==newRoomId) return false;
+    return isRangeOverlap(newCI,newCO,x.checkin,x.checkout);
+  });
+  if(conflict){ showToast('Room conflict for those dates',true); return; }
+
+  // build new segments if roster
+  let newSegs=[];
+  if(newRoster){
+    const [on,off]=newRoster.split('/').map(Number);
+    newSegs=buildRosterSegments(parseDate(newCI),on,off,newRots);
+    // adjust checkout to end of last segment
+    const lastSeg=newSegs[newSegs.length-1];
+    // update newCO to last seg end
+    document.getElementById('ep-checkout').value=lastSeg.checkout;
+  }
+
+  const finalCO=newRoster?(newSegs[newSegs.length-1].checkout):newCO;
+
+  const prev={...b, segments:[...b.segments]};
+  b.name=newName; b.roomId=newRoomId; b.checkin=newCI; b.checkout=finalCO;
+  b.company=newCompany; b.role=newRole; b.notes=newNotes;
+  b.rosterPattern=newRoster; b.offweek=newOffweek; b.segments=newSegs;
+
+  const room=ROOMS.find(r=>r.id===newRoomId);
+  showLoading('Saving...');
+  try {
+    await spPatch(SP.bookingsList,b.spId,{
+      Title:newName, OccupantName:newName, Company:newCompany, Role:newRole,
+      RoomNumber:room.num, CheckIn:newCI, CheckOut:finalCO,
+      Notes:newNotes, RosterPattern:newRoster, OffWeek:newOffweek,
+      SegmentsJson:JSON.stringify(newSegs)
+    });
+    hideLoading(); showToast('Booking updated ✔');
+  } catch(err){
+    Object.assign(b,prev);
+    hideLoading(); showToast('Save failed: '+err.message,true);
+  }
+  closePopupDirect(); renderCalendar(); updateStats(); renderBookingsList();
+}
+
+async function toggleRoomClean(roomId){
+  const r=ROOMS.find(x=>x.id===roomId); r.clean=!r.clean;
+  closePopupDirect(); renderCalendar(); updateStats();
+  try{ await spPatch(SP.roomsList,r.spId,{IsClean:r.clean}); showToast('Room status saved'); }
+  catch{ showToast('Updated locally',true); }
+}
+async function toggleRoomRepair(roomId){
+  const r=ROOMS.find(x=>x.id===roomId); r.repair=!r.repair;
+  closePopupDirect(); renderCalendar(); updateStats();
+  try{ await spPatch(SP.roomsList,r.spId,{NeedsRepair:r.repair}); showToast('Maintenance status saved'); }
+  catch{ showToast('Updated locally',true); }
+}
+async function deleteBooking(id){
+  const b=bookings.find(x=>x.id===id); if(!b) return;
+  showLoading('Deleting...');
+  try{
+    if(b.spId) await spDelete(SP.bookingsList,b.spId);
+    bookings=bookings.filter(x=>x.id!==id);
+    closePopupDirect(); renderCalendar(); updateStats(); renderBookingsList();
+    hideLoading(); showToast('Booking deleted');
+  }catch(e){ hideLoading(); showToast('Delete failed: '+e.message,true); }
+}
+
+function closePopup(e){ if(e.target===document.getElementById('popupOverlay')) closePopupDirect(); }
+function closePopupDirect(){ document.getElementById('popupOverlay').classList.remove('open'); }
+
+// ══════════════════════════════════════════════════════════
+// BOOKING FORM
+// ══════════════════════════════════════════════════════════
+function renderRoomPicker(){
+  const cin=document.getElementById('f-checkin').value;
+  const cout=document.getElementById('f-checkout').value;
+  document.getElementById('roomPicker').innerHTML=ROOMS.map(room=>{
+    const isRepair=room.repair;
+    // conflict: only check against actually-occupied (on-week) periods
+    const conflict=cin&&cout&&bookings.some(b=>{
+      if(b.roomId!==room.id) return false;
+      if(!isRangeOverlap(cin,cout,b.checkin,b.checkout)) return false;
+      // check if any on-week day overlaps
+      const testStart=parseDate(cin), testEnd=parseDate(cout);
+      for(let dt=new Date(testStart);dt<=testEnd;dt.setDate(dt.getDate()+1)){
+        if(bookingOccupiesOnDate(b,dt)) return true;
+      }
+      return false;
+    });
+    const isSel=selectedRoom===room.id;
+    let cls='',tag='';
+    if(isSel){cls='selected';}
+    else if(isRepair){cls='repair';tag='Repair';}
+    else if(conflict){cls='occupied';tag='Booked';}
+    return `<div class="room-option ${cls}" onclick="selectRoom(${room.id},'${cls}')">
+      ${room.num}<span class="room-tag">${tag}</span></div>`;
+  }).join('');
+}
+
+function selectRoom(id,cls){
+  if(cls==='repair'||cls==='occupied') return;
+  selectedRoom=id; renderRoomPicker();
+}
+
+document.getElementById('f-checkin').addEventListener('change',()=>{ onRosterChange(); renderRoomPicker(); });
+document.getElementById('f-checkout').addEventListener('change',renderRoomPicker);
+
+function onRosterChange(){
+  const pattern=document.getElementById('f-roster').value;
+  const cin=document.getElementById('f-checkin').value;
+  const info=document.getElementById('rosterInfo');
+  if(!pattern||!cin){ info.classList.remove('show'); return; }
+  const [on,off]=pattern.split('/').map(Number);
+  const rots=+document.getElementById('f-rotations').value||1;
+  const offweek=document.getElementById('f-offweek').value;
+  const segs=buildRosterSegments(parseDate(cin),on,off,rots);
+  const lastSeg=segs[segs.length-1];
+  document.getElementById('f-checkout').value=lastSeg.checkout;
+  renderRoomPicker();
+  // summary
+  const onSegs=segs.filter(s=>s.isOn);
+  const offSegs=segs.filter(s=>!s.isOn);
+  info.innerHTML=`<strong>${rots} rotation${rots>1?'s':''} of ${on}-on / ${off}-off</strong><br>
+    On-site: ${onSegs.map(s=>`${fmtDisplay(s.checkin)} – ${fmtDisplay(s.checkout)}`).join(', ')}<br>
+    Off-week (${offweek==='free'?'room available to others':'room held'}): ${offSegs.map(s=>`${fmtDisplay(s.checkin)} – ${fmtDisplay(s.checkout)}`).join(', ')}<br>
+    Overall period: ${fmtDisplay(cin)} → ${fmtDisplay(lastSeg.checkout)}`;
+  info.classList.add('show');
+}
+
+function setClean(v){ isClean=v; document.getElementById('btn-clean').className=`toggle-btn${v?' active-green':''}`; document.getElementById('btn-dirty').className=`toggle-btn${!v?' active-yellow':''}`; }
+function setRepair(v){ needsRepair=v; document.getElementById('btn-ok').className=`toggle-btn${!v?' active-green':''}`; document.getElementById('btn-repair').className=`toggle-btn${v?' active-red':''}`; }
+
+async function submitBooking(){
+  const fn=document.getElementById('f-firstname').value.trim();
+  const ln=document.getElementById('f-lastname').value.trim();
+  const cin=document.getElementById('f-checkin').value;
+  const cout=document.getElementById('f-checkout').value;
+  const pattern=document.getElementById('f-roster').value;
+  const offweek=document.getElementById('f-offweek').value;
+  const rots=+document.getElementById('f-rotations').value||1;
+
+  if(!fn){ showToast('First name is required',true); return; }
+  if(!selectedRoom){ showToast('Please select a room',true); return; }
+  if(!cin||!cout){ showToast('Please enter check-in and check-out dates',true); return; }
+  if(cin>cout){ showToast('Check-out must be after check-in',true); return; }
+
+  const fullName=(fn+(ln?' '+ln:'')).trim();
+
+  // Build segments
+  let segs=[];
+  if(pattern){
+    const [on,off]=pattern.split('/').map(Number);
+    segs=buildRosterSegments(parseDate(cin),on,off,rots);
+  }
+
+  // Conflict check
+  const conflict=bookings.some(b=>{
+    if(b.roomId!==selectedRoom) return false;
+    if(!isRangeOverlap(cin,cout,b.checkin,b.checkout)) return false;
+    for(let dt=new Date(parseDate(cin));dt<=parseDate(cout);dt.setDate(dt.getDate()+1)){
+      const dtCopy=new Date(dt);
+      // would new booking occupy this day?
+      let newOccupies=true;
+      if(segs.length){
+        const seg=segs.find(s=>{const a=parseDate(s.checkin),b=parseDate(s.checkout);a.setHours(0,0,0,0);b.setHours(0,0,0,0);dtCopy.setHours(0,0,0,0);return dtCopy>=a&&dtCopy<=b;});
+        newOccupies=seg?seg.isOn:(offweek==='held');
+      }
+      if(newOccupies&&bookingOccupiesOnDate(b,dtCopy)) return true;
+    }
+    return false;
+  });
+  if(conflict){ showToast('Room conflict — overlapping occupied periods',true); return; }
+
+  const room=ROOMS.find(r=>r.id===selectedRoom);
+  const colorIndex=bookings.length%6;
+  const payload={
+    Title:fullName, OccupantName:fullName,
+    Company:document.getElementById('f-company').value.trim(),
+    Role:document.getElementById('f-role').value.trim(),
+    RoomNumber:room.num, CheckIn:cin, CheckOut:cout,
+    IsClean:isClean, NeedsRepair:needsRepair,
+    Notes:document.getElementById('f-notes').value.trim(),
+    ColorIndex:colorIndex, RosterPattern:pattern, OffWeek:offweek,
+    SegmentsJson:JSON.stringify(segs),
+  };
+
+  showLoading('Saving booking...');
+  try{
+    let spId=null;
+    if(spAvailable){ const c=await spPost(SP.bookingsList,payload); spId=c.Id; }
+    const nb={
+      id:String(spId||Date.now()), spId,
+      roomId:selectedRoom, name:fullName,
+      company:payload.Company, role:payload.Role,
+      checkin:cin, checkout:cout,
+      clean:isClean, repair:needsRepair, notes:payload.Notes,
+      color:colorIndex, rosterPattern:pattern, offweek, segments:segs,
+    };
+    bookings.push(nb);
+    room.clean=isClean; room.repair=needsRepair;
+    if(room.spId&&spAvailable) await spPatch(SP.roomsList,room.spId,{IsClean:isClean,NeedsRepair:needsRepair});
+    hideLoading(); showToast('Booking saved ✔');
+    resetForm(); renderCalendar(); updateStats(); renderBookingsList();
+  }catch(e){ hideLoading(); showToast('Error: '+e.message,true); }
+}
+
+function resetForm(){
+  ['f-firstname','f-lastname','f-company','f-role','f-checkin','f-checkout','f-notes'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('f-roster').value='';
+  document.getElementById('f-rotations').value='1';
+  document.getElementById('rosterInfo').classList.remove('show');
+  selectedRoom=null; isClean=true; needsRepair=false;
+  setClean(true); setRepair(false); renderRoomPicker();
+}
+
+function renderBookingsList(){
+  const tbody=document.getElementById('bookingsTbody');
+  const empty=document.getElementById('bookingsEmpty');
+  const count=document.getElementById('booking-count');
+  count.textContent=`${bookings.length} booking${bookings.length!==1?'s':''}`;
+  if(!bookings.length){ tbody.innerHTML=''; empty.style.display='block'; return; }
+  empty.style.display='none';
+  tbody.innerHTML=[...bookings].reverse().map(b=>{
+    const room=ROOMS.find(r=>r.id===b.roomId);
+    const today=new Date(); const active=bookingOccupiesOnDate(b,today);
+    return `<tr>
+      <td><span class="room-chip">${room?room.num:'?'}</span></td>
+      <td>${b.name}</td>
+      <td style="color:var(--text-dim)">${b.company||'—'}</td>
+      <td>${fmtDisplay(b.checkin)}</td>
+      <td>${fmtDisplay(b.checkout)}</td>
+      <td style="color:var(--text-dim)">${b.rosterPattern||'—'}</td>
+      <td>${b.clean?'✅':'🧹'}</td>
+      <td><span style="color:${active?'#3fb950':'var(--text-muted)'}">${active?'● Active':'○ Scheduled'}</span></td>
+      <td><button class="btn btn-ghost" style="padding:4px 10px;font-size:11px" onclick="showBookingById('${b.id}')">✏</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function showBookingById(id){
+  const b=bookings.find(x=>x.id===id); if(!b) return;
+  const room=ROOMS.find(r=>r.id===b.roomId);
+  document.getElementById('popupTitle').textContent=room.num+' — '+b.name;
+  renderBookingPopupView(b,room);
+  document.getElementById('popupOverlay').classList.add('open');
+}
+
+// ══════════════════════════════════════════════════════════
+// SETUP GUIDE
+// ══════════════════════════════════════════════════════════
+function showSetupGuide(){
+  document.getElementById('popupTitle').textContent='SharePoint Setup Guide';
+  document.getElementById('popupBody').innerHTML=`
+    <p style="color:var(--text-dim);font-size:13px;line-height:1.7;margin-bottom:14px">The app uses SharePoint's built-in REST API with your existing login session — no Azure AD registration needed. Follow these steps once.</p>
+    <div style="font-size:12px;line-height:2.2;color:var(--text)">
+      <strong style="color:var(--accent);font-family:var(--font-head)">STEP 1 — Create CampRooms List</strong><br>
+      Site Contents → New → List → Blank → Name: <code style="background:var(--bg);padding:1px 5px;border-radius:3px">CampRooms</code><br>
+      Add columns: <code>RoomNumber</code> (Single line text), <code>IsClean</code> (Yes/No), <code>NeedsRepair</code> (Yes/No)<br><br>
+      <strong style="color:var(--accent);font-family:var(--font-head)">STEP 2 — Create CampBookings List</strong><br>
+      Site Contents → New → List → Blank → Name: <code style="background:var(--bg);padding:1px 5px;border-radius:3px">CampBookings</code><br>
+      Columns to add:<br>
+      &nbsp;&nbsp;<code>OccupantName</code> — Single line text<br>
+      &nbsp;&nbsp;<code>Company</code> — Single line text<br>
+      &nbsp;&nbsp;<code>Role</code> — Single line text<br>
+      &nbsp;&nbsp;<code>RoomNumber</code> — Single line text<br>
+      &nbsp;&nbsp;<code>CheckIn</code> — Date (date only)<br>
+      &nbsp;&nbsp;<code>CheckOut</code> — Date (date only)<br>
+      &nbsp;&nbsp;<code>IsClean</code> — Yes/No<br>
+      &nbsp;&nbsp;<code>NeedsRepair</code> — Yes/No<br>
+      &nbsp;&nbsp;<code>Notes</code> — Multiple lines of text<br>
+      &nbsp;&nbsp;<code>ColorIndex</code> — Number<br>
+      &nbsp;&nbsp;<code>RosterPattern</code> — Single line text<br>
+      &nbsp;&nbsp;<code>OffWeek</code> — Single line text<br>
+      &nbsp;&nbsp;<code>SegmentsJson</code> — Multiple lines of text<br><br>
+      <strong style="color:var(--accent);font-family:var(--font-head)">STEP 3 — Upload & Open</strong><br>
+      Upload this HTML file to <strong>Site Assets</strong> on your SharePoint site.<br>
+      Open it directly via its SharePoint URL — it will use your existing session automatically.
+    </div>`;
+  document.getElementById('popupActions').innerHTML=`<button class="btn btn-ghost" onclick="closePopupDirect()">Close</button>`;
+  document.getElementById('popupOverlay').classList.add('open');
+}
+
+// ══════════════════════════════════════════════════════════
+// LOADING / TOAST
+// ══════════════════════════════════════════════════════════
+function showLoading(msg='Loading...'){ document.getElementById('loadingMsg').textContent=msg; document.getElementById('loadingOverlay').classList.add('show'); }
+function hideLoading(){ document.getElementById('loadingOverlay').classList.remove('show'); }
+
+let toastTimer;
+function showToast(msg,isError=false){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.className='toast show'+(isError?' error':'');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),3500);
+}
+
+// ══════════════════════════════════════════════════════════
+// START
+// ══════════════════════════════════════════════════════════
+document.getElementById('f-checkin').valueAsDate=new Date();
+const defOut=new Date(); defOut.setDate(defOut.getDate()+14);
+document.getElementById('f-checkout').valueAsDate=defOut;
+window.addEventListener('resize',()=>{ if(document.getElementById('page-overview').classList.contains('active')) renderCalendar(); });
+initApp();
+</script>
+</body>
+</html>
