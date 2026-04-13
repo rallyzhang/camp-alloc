@@ -1,0 +1,98 @@
+[
+  {
+    "id": 1,
+    "num": "R01",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 2,
+    "num": "R02",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 3,
+    "num": "R03",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 4,
+    "num": "R04",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 5,
+    "num": "R05",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 6,
+    "num": "R06",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 7,
+    "num": "R07",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 8,
+    "num": "R08",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 9,
+    "num": "R09",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 10,
+    "num": "R10",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 11,
+    "num": "R11",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 12,
+    "num": "R12",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 13,
+    "num": "R13",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 14,
+    "num": "R14",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 15,
+    "num": "R15",
+    "clean": true,
+    "repair": false
+  },
+  {
+    "id": 16,
+    "num": "R16",
+    "clean": true,
+    "repair": false
+  }
+]
