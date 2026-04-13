@@ -566,7 +566,8 @@ const GH_API = 'https://api.github.com';
 
 async function ghGet(path) {
   const r = await fetch(`${GH_API}/repos/${CFG.owner}/${CFG.repo}/contents/${path}`, {
-    headers:{ Authorization:`token ${CFG.token}`, Accept:'application/vnd.github+json' }
+    headers:{ Authorization:`token ${CFG.token}`, Accept:'application/vnd.github+json',
+              'Cache-Control':'no-cache' }   // always get fresh data
   });
   if (r.status===404) return null;
   if (!r.ok) throw new Error('GitHub read failed: '+r.status);
@@ -575,13 +576,23 @@ async function ghGet(path) {
   return { content, sha: data.sha };
 }
 
-async function ghPut(path, content, sha=null) {
+// Always fetch the current SHA immediately before writing to avoid 409 conflicts
+async function ghPut(path, content) {
   setSaveState('saving');
-  const body = { message:`Update ${path}`, content: btoa(unescape(encodeURIComponent(JSON.stringify(content,null,2)))) };
+  // Step 1: get the live SHA right now (never use a cached one)
+  const current = await ghGet(path);
+  const sha = current ? current.sha : null;
+
+  const body = {
+    message: `Update ${path}`,
+    content: btoa(unescape(encodeURIComponent(JSON.stringify(content,null,2))))
+  };
   if (sha) body.sha = sha;
+
   const r = await fetch(`${GH_API}/repos/${CFG.owner}/${CFG.repo}/contents/${path}`, {
     method:'PUT',
-    headers:{ Authorization:`token ${CFG.token}`, Accept:'application/vnd.github+json', 'Content-Type':'application/json' },
+    headers:{ Authorization:`token ${CFG.token}`, Accept:'application/vnd.github+json',
+               'Content-Type':'application/json' },
     body: JSON.stringify(body)
   });
   if (!r.ok) { setSaveState('error'); throw new Error('GitHub write failed: '+(await r.text())); }
@@ -590,40 +601,44 @@ async function ghPut(path, content, sha=null) {
   return result.content.sha;
 }
 
-// file SHAs cache
-let fileSHAs = { bookings: null, rooms: null };
+// Save queue — ensures bookings and rooms never write simultaneously
+let _saveQueue = Promise.resolve();
+function queueSave(fn) {
+  _saveQueue = _saveQueue.then(fn).catch(e => { setSaveState('error'); throw e; });
+  return _saveQueue;
+}
 
 async function initGitHubFiles() {
-  // create bookings.json if missing
   let b = await ghGet('data/bookings.json');
-  if (!b) { fileSHAs.bookings = await ghPut('data/bookings.json',[]); }
-  else fileSHAs.bookings = b.sha;
-  // create rooms.json if missing
+  if (!b) await ghPut('data/bookings.json', []);
   let rm = await ghGet('data/rooms.json');
   if (!rm) {
     const defaultRooms = Array.from({length:16},(_,i)=>({id:i+1,num:`R${String(i+1).padStart(2,'0')}`,clean:true,repair:false}));
-    fileSHAs.rooms = await ghPut('data/rooms.json',defaultRooms);
-  } else fileSHAs.rooms = rm.sha;
+    await ghPut('data/rooms.json', defaultRooms);
+  }
 }
 
 async function loadGitHubData() {
-  const [bResult, rResult] = await Promise.all([
-    ghGet('data/bookings.json'),
-    ghGet('data/rooms.json')
-  ]);
-  if (bResult) { bookings=bResult.content; fileSHAs.bookings=bResult.sha; }
+  // Load sequentially to avoid hammering API simultaneously
+  const bResult = await ghGet('data/bookings.json');
+  const rResult = await ghGet('data/rooms.json');
+  if (bResult) bookings = bResult.content;
   if (rResult) {
     rResult.content.forEach(r=>{ const room=ROOMS.find(x=>x.id===r.id); if(room){room.clean=r.clean;room.repair=r.repair;} });
-    fileSHAs.rooms=rResult.sha;
   }
 }
 
 async function saveBookings() {
-  fileSHAs.bookings = await ghPut('data/bookings.json', bookings, fileSHAs.bookings);
+  return queueSave(() => ghPut('data/bookings.json', bookings));
 }
 async function saveRooms() {
   const roomData = ROOMS.map(r=>({id:r.id,num:r.num,clean:r.clean,repair:r.repair}));
-  fileSHAs.rooms = await ghPut('data/rooms.json', roomData, fileSHAs.rooms);
+  return queueSave(() => ghPut('data/rooms.json', roomData));
+}
+// Save both in sequence (not parallel) to avoid SHA races
+async function saveAll() {
+  await saveBookings();
+  await saveRooms();
 }
 
 function setSaveState(state) {
@@ -1024,7 +1039,7 @@ async function submitBooking(){
   ROOMS.find(r=>r.id===selectedRoom).clean=isClean;
   ROOMS.find(r=>r.id===selectedRoom).repair=needsRepair;
   showLoading('Saving booking...');
-  try{await Promise.all([saveBookings(),saveRooms()]);hideLoading();showToast('Booking saved ✔');resetForm();renderCalendar();updateStats();renderBookingsList();}
+  try{await saveAll();hideLoading();showToast('Booking saved ✔');resetForm();renderCalendar();updateStats();renderBookingsList();}
   catch(e){hideLoading();showToast('Error: '+e.message,true);}
 }
 
