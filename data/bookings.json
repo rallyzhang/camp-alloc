@@ -35,5 +35,79 @@
         "isOn": false
       }
     ]
+  },
+  {
+    "id": "1776060464974",
+    "roomId": 2,
+    "name": "Nate",
+    "company": "XPR",
+    "role": "",
+    "checkin": "2026-04-17",
+    "checkout": "2026-06-11",
+    "clean": true,
+    "repair": false,
+    "notes": "",
+    "color": 1,
+    "rosterPattern": "14/14",
+    "offweek": "held",
+    "segments": [
+      {
+        "checkin": "2026-04-17",
+        "checkout": "2026-04-30",
+        "isOn": true
+      },
+      {
+        "checkin": "2026-05-01",
+        "checkout": "2026-05-14",
+        "isOn": false
+      },
+      {
+        "checkin": "2026-05-15",
+        "checkout": "2026-05-28",
+        "isOn": true
+      },
+      {
+        "checkin": "2026-05-29",
+        "checkout": "2026-06-11",
+        "isOn": false
+      }
+    ]
+  },
+  {
+    "id": "1776060483185",
+    "roomId": 4,
+    "name": "Kate",
+    "company": "XPR",
+    "role": "",
+    "checkin": "2026-04-17",
+    "checkout": "2026-06-11",
+    "clean": true,
+    "repair": false,
+    "notes": "",
+    "color": 2,
+    "rosterPattern": "14/14",
+    "offweek": "held",
+    "segments": [
+      {
+        "checkin": "2026-04-17",
+        "checkout": "2026-04-30",
+        "isOn": true
+      },
+      {
+        "checkin": "2026-05-01",
+        "checkout": "2026-05-14",
+        "isOn": false
+      },
+      {
+        "checkin": "2026-05-15",
+        "checkout": "2026-05-28",
+        "isOn": true
+      },
+      {
+        "checkin": "2026-05-29",
+        "checkout": "2026-06-11",
+        "isOn": false
+      }
+    ]
   }
 ]
