@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Camp Allocation (Secure)</title>
+</head>
+<body>
+<h1>Camp Allocation (Secure Version)</h1>
+
+<button onclick="loadData()">Load Data</button>
+<pre id="output"></pre>
+
+<script>
+const CFG = {
+  workerUrl: "https://github-proxy.yourname.workers.dev",
+  apiKey: "REPLACE_WITH_API_KEY",
+  dataFile: "data.json"
+};
+
+async function apiFetch(path, options = {}) {
+  const res = await fetch(`${CFG.workerUrl}/repo?path=${path}`, {
+    ...options,
+    headers: {
+      "x-api-key": CFG.apiKey,
+      "Content-Type": "application/json",
+      ...(options.headers || {})
+    }
+  });
+
+  if (!res.ok) {
+    throw new Error("API error: " + res.status);
+  }
+
+  return res.text();
+}
+
+async function loadData() {
+  try {
+    const data = await apiFetch(CFG.dataFile);
+    document.getElementById("output").textContent = data;
+  } catch (err) {
+    console.error(err);
+    alert("Failed to load data");
+  }
+}
+</script>
+
+</body>
+</html>
