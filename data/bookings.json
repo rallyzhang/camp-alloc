@@ -38,12 +38,12 @@
   },
   {
     "id": "1776060464974",
-    "roomId": 3,
+    "roomId": 2,
     "name": "Nate",
     "company": "XPR",
     "role": "",
-    "checkin": "2026-04-16",
-    "checkout": "2026-06-10",
+    "checkin": "2026-05-15",
+    "checkout": "2026-07-09",
     "clean": true,
     "repair": false,
     "notes": "",
@@ -52,23 +52,23 @@
     "offweek": "held",
     "segments": [
       {
-        "checkin": "2026-04-16",
-        "checkout": "2026-04-29",
+        "checkin": "2026-05-15",
+        "checkout": "2026-05-28",
         "isOn": true
       },
       {
-        "checkin": "2026-04-30",
-        "checkout": "2026-05-13",
+        "checkin": "2026-05-29",
+        "checkout": "2026-06-11",
         "isOn": false
       },
       {
-        "checkin": "2026-05-14",
-        "checkout": "2026-05-27",
+        "checkin": "2026-06-12",
+        "checkout": "2026-06-25",
         "isOn": true
       },
       {
-        "checkin": "2026-05-28",
-        "checkout": "2026-06-10",
+        "checkin": "2026-06-26",
+        "checkout": "2026-07-09",
         "isOn": false
       }
     ]
