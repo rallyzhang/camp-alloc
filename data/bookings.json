@@ -109,5 +109,21 @@
         "isOn": false
       }
     ]
+  },
+  {
+    "id": "1776060977329",
+    "roomId": 1,
+    "name": "Alvin",
+    "company": "",
+    "role": "",
+    "checkin": "2026-04-29",
+    "checkout": "2026-04-30",
+    "clean": true,
+    "repair": false,
+    "notes": "",
+    "color": 3,
+    "rosterPattern": "",
+    "offweek": "free",
+    "segments": []
   }
 ]
