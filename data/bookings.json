@@ -75,12 +75,12 @@
   },
   {
     "id": "1776060483185",
-    "roomId": 4,
+    "roomId": 3,
     "name": "Kate",
     "company": "XPR",
     "role": "",
-    "checkin": "2026-04-17",
-    "checkout": "2026-06-11",
+    "checkin": "2026-05-15",
+    "checkout": "2026-07-09",
     "clean": true,
     "repair": false,
     "notes": "",
@@ -89,16 +89,6 @@
     "offweek": "held",
     "segments": [
       {
-        "checkin": "2026-04-17",
-        "checkout": "2026-04-30",
-        "isOn": true
-      },
-      {
-        "checkin": "2026-05-01",
-        "checkout": "2026-05-14",
-        "isOn": false
-      },
-      {
         "checkin": "2026-05-15",
         "checkout": "2026-05-28",
         "isOn": true
@@ -106,6 +96,16 @@
       {
         "checkin": "2026-05-29",
         "checkout": "2026-06-11",
+        "isOn": false
+      },
+      {
+        "checkin": "2026-06-12",
+        "checkout": "2026-06-25",
+        "isOn": true
+      },
+      {
+        "checkin": "2026-06-26",
+        "checkout": "2026-07-09",
         "isOn": false
       }
     ]
