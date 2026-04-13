@@ -125,5 +125,42 @@
     "rosterPattern": "",
     "offweek": "free",
     "segments": []
+  },
+  {
+    "id": "1776061988098",
+    "roomId": 6,
+    "name": "mia",
+    "company": "",
+    "role": "",
+    "checkin": "2026-04-16",
+    "checkout": "2026-06-10",
+    "clean": true,
+    "repair": false,
+    "notes": "",
+    "color": 4,
+    "rosterPattern": "14/14",
+    "offweek": "free",
+    "segments": [
+      {
+        "checkin": "2026-04-16",
+        "checkout": "2026-04-29",
+        "isOn": true
+      },
+      {
+        "checkin": "2026-04-30",
+        "checkout": "2026-05-13",
+        "isOn": false
+      },
+      {
+        "checkin": "2026-05-14",
+        "checkout": "2026-05-27",
+        "isOn": true
+      },
+      {
+        "checkin": "2026-05-28",
+        "checkout": "2026-06-10",
+        "isOn": false
+      }
+    ]
   }
 ]
