@@ -20,7 +20,7 @@
   {
     "id": 4,
     "num": "R04",
-    "clean": true,
+    "clean": false,
     "repair": false
   },
   {
