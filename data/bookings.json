@@ -5,8 +5,8 @@
     "name": "Mark",
     "company": "XPR",
     "role": "",
-    "checkin": "2026-04-15",
-    "checkout": "2026-06-09",
+    "checkin": "2026-04-11",
+    "checkout": "2026-06-05",
     "clean": true,
     "repair": false,
     "notes": "",
@@ -15,23 +15,23 @@
     "offweek": "free",
     "segments": [
       {
-        "checkin": "2026-04-15",
-        "checkout": "2026-04-28",
+        "checkin": "2026-04-11",
+        "checkout": "2026-04-24",
         "isOn": true
       },
       {
-        "checkin": "2026-04-29",
-        "checkout": "2026-05-12",
+        "checkin": "2026-04-25",
+        "checkout": "2026-05-08",
         "isOn": false
       },
       {
-        "checkin": "2026-05-13",
-        "checkout": "2026-05-26",
+        "checkin": "2026-05-09",
+        "checkout": "2026-05-22",
         "isOn": true
       },
       {
-        "checkin": "2026-05-27",
-        "checkout": "2026-06-09",
+        "checkin": "2026-05-23",
+        "checkout": "2026-06-05",
         "isOn": false
       }
     ]
