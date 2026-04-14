@@ -8,7 +8,7 @@
   {
     "id": 2,
     "num": "R02",
-    "clean": true,
+    "clean": false,
     "repair": false
   },
   {
