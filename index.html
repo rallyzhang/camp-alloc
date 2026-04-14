@@ -1,14 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
-<script>
-window.CFG = window.CFG || {};
-window.CFG.workerUrl = "https://github-proxy.alvinkc.workers.dev";
-window.CFG.apiKey = "GITHUB_TOKEN";
-window.CFG.dataFile = "data.json";
-</script>
-
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Camp Allocation — Wyndham Airport Camp</title>
@@ -482,36 +474,20 @@ window.CFG.dataFile = "data.json";
 
 <script>
 // ══════════════════════════════════════════════════════════
-// ★ HARDCODED CONFIG — edit these 4 values before uploading
+// ★ CONFIG — set these two values before uploading
 // ══════════════════════════════════════════════════════════
-const HARDCODED_CFG = {
-  owner:    'rallyzhang',   // e.g. 'kmetgroup'
-  repo:     'camp-alloc',         // e.g. 'camp-alloc'
-  token:    'REMOVED_TOKEN',      // REMOVED_TOKEN
-  password: 'Kmetgroup123!',     // shared password for all staff
-};
+const WORKER_URL   = 'https://campbook.alvinkc.workers.dev'; // ← Cloudflare Worker URL
+const APP_PASSWORD = 'kmetgroup123!'; // ← same as APP_PASSWORD set in Worker env vars
 // ─────────────────────────────────────────────────────────
-const LS_AUTH = 'campalloc_auth';
+const LS_AUTH = 'campalloc_auth_v7';
 const SESSION_MINS = 480; // 8 hours
 
-window.CFG = window.CFG || null; // { owner, repo, token, passwordHash }
+let CFG = null; // { owner, repo, token, passwordHash }
 
-async function hashStr(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b=>b.toString(16).padStart(2,'0')).join('');
-}
-// CFG is always the hardcoded config
-window.CFG = window.CFG || null;
-function loadConfig() {
-  CFG = { ...HARDCODED_CFG };
-  // derive passwordHash at runtime
-  return true;
-}
 function isAuthenticated() {
   try {
     const a = JSON.parse(localStorage.getItem(LS_AUTH));
-    if (!a) return false;
-    return Date.now() < a.expires;
+    return a && Date.now() < a.expires;
   } catch { return false; }
 }
 function setAuthenticated() {
@@ -521,7 +497,6 @@ function clearAuth() { localStorage.removeItem(LS_AUTH); }
 
 // ── STARTUP
 window.addEventListener('load', async () => {
-  loadConfig(); // sets CFG from HARDCODED_CFG
   if (!isAuthenticated()) { showLoginScreen(); return; }
   await startApp();
 });
@@ -534,7 +509,7 @@ function showLoginScreen() {
 
 async function doLogin() {
   const pass = document.getElementById('loginPassword').value;
-  if (pass !== HARDCODED_CFG.password) {
+  if (pass !== APP_PASSWORD) {
     const card = document.querySelector('.login-card');
     card.classList.remove('login-shake');
     void card.offsetWidth;
@@ -555,82 +530,72 @@ function doLogout() {
 }
 
 // ══════════════════════════════════════════════════════════
-// GITHUB API
+// WORKER API — token never touches the browser
+// All requests go through the Cloudflare Worker proxy
 // ══════════════════════════════════════════════════════════
-const GH_API = 'https://api.github.com';
-
-async function ghGet(path) {
-  const r = await fetch(`${GH_API}/repos/${CFG.owner}/${CFG.repo}/contents/${path}`, {
-    headers:{ Authorization:`token ${CFG.token}`, Accept:'application/vnd.github+json',
-              'Cache-Control':'no-cache' }   // always get fresh data
+async function workerGet(path) {
+  const r = await fetch(WORKER_URL + path, {
+    headers: { 'X-App-Password': APP_PASSWORD }
   });
-  if (r.status===404) return null;
-  if (!r.ok) throw new Error('GitHub read failed: '+r.status);
+  if (!r.ok) throw new Error('Fetch error ' + r.status);
   const data = await r.json();
-  const content = JSON.parse(atob(data.content.replace(/\n/g,'')));
-  return { content, sha: data.sha };
+  if (data.error) throw new Error(data.error);
+  if (data.exists === false) return null; // file not yet created
+  return data; // { content, sha }
 }
 
-// Always fetch the current SHA immediately before writing to avoid 409 conflicts
-async function ghPut(path, content) {
+async function workerPut(path, content) {
   setSaveState('saving');
-  // Step 1: get the live SHA right now (never use a cached one)
-  const current = await ghGet(path);
-  const sha = current ? current.sha : null;
-
-  const body = {
-    message: `Update ${path}`,
-    content: btoa(unescape(encodeURIComponent(JSON.stringify(content,null,2))))
-  };
-  if (sha) body.sha = sha;
-
-  const r = await fetch(`${GH_API}/repos/${CFG.owner}/${CFG.repo}/contents/${path}`, {
-    method:'PUT',
-    headers:{ Authorization:`token ${CFG.token}`, Accept:'application/vnd.github+json',
-               'Content-Type':'application/json' },
-    body: JSON.stringify(body)
+  const r = await fetch(WORKER_URL + path, {
+    method: 'PUT',
+    headers: { 'X-App-Password': APP_PASSWORD, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content })
   });
-  if (!r.ok) { setSaveState('error'); throw new Error('GitHub write failed: '+(await r.text())); }
-  const result = await r.json();
+  if (!r.ok) {
+    setSaveState('error');
+    const err = await r.json().catch(()=>({}));
+    throw new Error(err.error || 'Save failed ' + r.status);
+  }
   setSaveState('synced');
-  return result.content.sha;
 }
 
-// Save queue — ensures bookings and rooms never write simultaneously
+// Save queue — serialises all writes, no race conditions
 let _saveQueue = Promise.resolve();
 function queueSave(fn) {
-  _saveQueue = _saveQueue.then(fn).catch(e => { setSaveState('error'); throw e; });
+  _saveQueue = _saveQueue.then(fn).catch(e => { setSaveState('error'); console.error(e); });
   return _saveQueue;
 }
 
-async function initGitHubFiles() {
-  let b = await ghGet('data/bookings.json');
-  if (!b) await ghPut('data/bookings.json', []);
-  let rm = await ghGet('data/rooms.json');
+async function initDataFiles() {
+  const b = await workerGet('/data/bookings.json');
+  if (!b) await workerPut('/data/bookings.json', []);
+  const rm = await workerGet('/data/rooms.json');
   if (!rm) {
-    const defaultRooms = Array.from({length:16},(_,i)=>({id:i+1,num:`R${String(i+1).padStart(2,'0')}`,clean:true,repair:false}));
-    await ghPut('data/rooms.json', defaultRooms);
+    const def = ROOMS.map(r=>({id:r.id,num:r.num,clean:true,repair:false}));
+    await workerPut('/data/rooms.json', def);
   }
 }
 
-async function loadGitHubData() {
-  // Load sequentially to avoid hammering API simultaneously
-  const bResult = await ghGet('data/bookings.json');
-  const rResult = await ghGet('data/rooms.json');
-  if (bResult) bookings = bResult.content;
-  if (rResult) {
-    rResult.content.forEach(r=>{ const room=ROOMS.find(x=>x.id===r.id); if(room){room.clean=r.clean;room.repair=r.repair;} });
+async function loadData() {
+  const [bRes, rRes] = await Promise.all([
+    workerGet('/data/bookings.json'),
+    workerGet('/data/rooms.json')
+  ]);
+  if (bRes && bRes.content) bookings = bRes.content;
+  if (rRes && rRes.content) {
+    rRes.content.forEach(r=>{
+      const room = ROOMS.find(x=>x.id===r.id);
+      if (room) { room.clean=r.clean; room.repair=r.repair; }
+    });
   }
 }
 
 async function saveBookings() {
-  return queueSave(() => ghPut('data/bookings.json', bookings));
+  return queueSave(() => workerPut('/data/bookings.json', bookings));
 }
 async function saveRooms() {
-  const roomData = ROOMS.map(r=>({id:r.id,num:r.num,clean:r.clean,repair:r.repair}));
-  return queueSave(() => ghPut('data/rooms.json', roomData));
+  return queueSave(() => workerPut('/data/rooms.json', ROOMS.map(r=>({id:r.id,num:r.num,clean:r.clean,repair:r.repair}))));
 }
-// Save both in sequence (not parallel) to avoid SHA races
 async function saveAll() {
   await saveBookings();
   await saveRooms();
@@ -658,19 +623,20 @@ async function startApp() {
   
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('mainApp').style.display='block';
-  showLoading('Loading data from GitHub...');
+  showLoading('Connecting to data store...');
   try {
-    await loadGitHubData();
+    await initDataFiles();
+    await loadData();
   } catch(e) {
-    console.warn('Data load error:', e.message);
+    console.error('Data load error:', e);
     showToast('Could not load data: '+e.message, true);
   }
   hideLoading();
   renderCalendar(); updateStats(); renderRoomPicker(); renderBookingsList();
   setInterval(updateClock,1000); updateClock();
   initReportYears();
-  // auto-refresh every 5 min to pick up changes from other users
-  setInterval(async()=>{ try{ await loadGitHubData(); renderCalendar(); updateStats(); renderBookingsList(); }catch{} }, 5*60*1000);
+  // Auto-refresh every 3 min to pick up other users changes
+  setInterval(async()=>{ try{ await loadData(); renderCalendar(); updateStats(); renderBookingsList(); }catch(e){console.warn(e);} }, 3*60*1000);
 }
 
 // ══════════════════════════════════════════════════════════
@@ -774,10 +740,10 @@ function renderCalendar(){
         const posClass=isStart&&isEnd?'bar-solo':isStart?'bar-start':isEnd?'bar-end':'bar-mid';
         const showName=isStart||d===0;
         const label=isFreeOff?'(off)':showName?b.name.split(' ')[0]:'';
-        bars+=`<div class="booking-bar color-${b.color} ${posClass}${isOff?' off-week':''}"
+        bars+=`<div class="booking-bar color-${(b.color||0)%6} ${posClass}${isOff?' off-week':''}"
           ${!isOff?`draggable="true" ondragstart="onDragStart(event,'${b.id}')"`:''}
           onclick="showBookingPopup('${b.id}',event)"
-          title="${b.name}${b.rosterPattern?' ['+b.rosterPattern+']':''} | ${b.checkin} → ${b.checkout}${isOff?' | OFF WEEK':''}">
+          title="${(b.name||"").replace(/"/g,"&quot;")}${b.rosterPattern?' ['+b.rosterPattern+']':''} | ${b.checkin} → ${b.checkout}${isOff?' | OFF WEEK':''}">
           ${label}</div>`;
       });
       html+=`<div class="cal-day-cell${isToday?' today-col':''}${isWknd?' weekend':''}"
@@ -816,7 +782,8 @@ function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
 async function onDrop(e,roomId,dateStr){
   e.preventDefault();e.currentTarget.classList.remove('drag-over');
   if(!dragBookingId)return;
-  const b=bookings.find(x=>x.id===dragBookingId);if(!b)return;
+  const _dragId=dragBookingId; dragBookingId=null; // clear immediately to prevent double-drop
+  const b=bookings.find(x=>x.id===_dragId);if(!b)return;
   const dur=Math.round((parseDate(b.checkout)-parseDate(b.checkin))/86400000);
   const newStart=parseDate(dateStr);const newEnd=new Date(newStart);newEnd.setDate(newStart.getDate()+dur);
   const newCI=formatDate(newStart),newCO=formatDate(newEnd);
@@ -1032,7 +999,7 @@ async function submitBooking(){
     role:document.getElementById('f-role').value.trim(),
     checkin:cin,checkout:cout,clean:isClean,repair:needsRepair,
     notes:document.getElementById('f-notes').value.trim(),
-    color:bookings.length%6,rosterPattern:pattern,offweek,segments:segs,
+    color:(bookings.length)%6,rosterPattern:pattern,offweek,segments:segs,
   };
   bookings.push(nb);
   ROOMS.find(r=>r.id===selectedRoom).clean=isClean;
