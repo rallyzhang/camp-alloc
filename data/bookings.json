@@ -162,5 +162,21 @@
         "isOn": false
       }
     ]
+  },
+  {
+    "id": "1776209487701",
+    "roomId": 7,
+    "name": "Geoff Booth",
+    "company": "Doon Doon Roadhouse",
+    "role": "",
+    "checkin": "2026-04-15",
+    "checkout": "2026-04-24",
+    "clean": true,
+    "repair": false,
+    "notes": "",
+    "color": 5,
+    "rosterPattern": "",
+    "offweek": "free",
+    "segments": []
   }
 ]
